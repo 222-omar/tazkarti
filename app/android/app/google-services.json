@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "33946982957",
+    "project_id": "tazk-d9069",
+    "storage_bucket": "tazk-d9069.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:33946982957:android:71a3cd2588b8950fe0b6a4",
+        "android_client_info": {
+          "package_name": "com.tazkarti.alert.tazkarti_alert"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDfFuxBURRz7Z7Dz4nGplFJCcGWtH8iCbA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

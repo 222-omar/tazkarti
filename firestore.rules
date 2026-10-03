@@ -1,0 +1,18 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Matches collection:
+    // Clients can read matches to display them in the Flutter app.
+    // Writes are strictly forbidden for client SDKs; only Admin SDK / Cloud Functions can write.
+    match /matches/{matchId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Watcher internal state collection:
+    // Completely private to backend service accounts / Cloud Functions.
+    match /watcher_state/{docId} {
+      allow read, write: if false;
+    }
+  }
+}

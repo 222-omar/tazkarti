@@ -1,0 +1,34 @@
+name: Tazkarti Watcher
+
+on:
+  schedule:
+    # Runs every 5 minutes (GitHub Actions free schedule limit)
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+jobs:
+  poll:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install -r watcher/requirements.txt
+
+      - name: Run Tazkarti Watcher Poll
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: serviceAccountKey.json
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          if [ -n "$FIREBASE_SERVICE_ACCOUNT" ]; then
+            echo "$FIREBASE_SERVICE_ACCOUNT" > serviceAccountKey.json
+          fi
+          python -c "from watcher.watcher_service import WatcherService; res = WatcherService().run_poll(); print('Result:', res)"
