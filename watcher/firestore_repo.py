@@ -12,6 +12,20 @@ logger = logging.getLogger("tazkarti.firestore")
 
 def init_firebase():
     if not firebase_admin._apps:
+        # 1. Check if raw JSON string is passed via env var (e.g. on Render / Cloud)
+        raw_json_env = os.getenv("FIREBASE_SERVICE_ACCOUNT")
+        if raw_json_env and raw_json_env.strip().startswith("{"):
+            import json
+            try:
+                cert_dict = json.loads(raw_json_env)
+                logger.info("Initializing Firebase using FIREBASE_SERVICE_ACCOUNT env variable")
+                cred = credentials.Certificate(cert_dict)
+                firebase_admin.initialize_app(cred)
+                return
+            except Exception as e:
+                logger.error(f"Failed to parse FIREBASE_SERVICE_ACCOUNT JSON: {e}")
+
+        # 2. Check for file path
         import glob
         cred_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
         if not cred_path or not os.path.exists(cred_path):
