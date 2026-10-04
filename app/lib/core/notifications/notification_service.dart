@@ -37,10 +37,7 @@ class NotificationService {
   );
 
   Future<void> initialize() async {
-    // 1. Request permissions for Android 13+ and iOS
-    await _requestPermissions();
-
-    // 2. Initialize Flutter Local Notifications for foreground popups
+    // 1. Initialize Flutter Local Notifications for foreground popups FIRST
     const androidSettings =
         AndroidInitializationSettings('@mipmap/ic_launcher');
     const iosSettings = DarwinInitializationSettings(
@@ -64,13 +61,16 @@ class NotificationService {
       },
     );
 
-    // 3. Create high importance notification channel on Android
+    // 2. Create high importance notification channel on Android
     final androidPlugin = _localNotifications
         .resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin>();
     if (androidPlugin != null) {
       await androidPlugin.createNotificationChannel(_highPriorityChannel);
     }
+
+    // 3. Request permissions for Android 13+ and iOS
+    final bool permissionGranted = await _requestPermissions(androidPlugin);
 
     // 4. Configure foreground presentation options for iOS
     await _fcm.setForegroundNotificationPresentationOptions(
@@ -79,14 +79,18 @@ class NotificationService {
       sound: true,
     );
 
-    // 5. Setup foreground message listener
+    // 5. Subscribe to default FCM topics immediately on startup
+    await subscribeToTopic(AppConstants.topicAhly);
+    await subscribeToTopic(AppConstants.topicEgypt);
+
+    // 6. Setup foreground message listener
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       developer.log('Received foreground message: ${message.messageId}',
           name: 'NotificationService');
       _showForegroundNotification(message);
     });
 
-    // 6. Handle notification click when app is opened from background
+    // 7. Handle notification click when app is opened from background
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       developer.log('App opened from background via notification: ${message.data}',
           name: 'NotificationService');
@@ -94,7 +98,7 @@ class NotificationService {
       _openUrl(url);
     });
 
-    // 7. Check if app was opened from terminated state via notification click
+    // 8. Check if app was opened from terminated state via notification click
     final initialMessage = await _fcm.getInitialMessage();
     if (initialMessage != null) {
       developer.log('App launched from terminated state via notification: ${initialMessage.data}',
@@ -106,8 +110,10 @@ class NotificationService {
     // Set background message handler
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
-    // Auto-alert for Egypt match on first launch / permission grant!
-    await _sendInitialEgyptMatchAlertIfFirstTime();
+    // 9. Auto-alert for Egypt match on launch!
+    if (permissionGranted) {
+      await _sendInitialEgyptMatchAlertIfFirstTime();
+    }
   }
 
   Future<void> _sendInitialEgyptMatchAlertIfFirstTime() async {
@@ -115,13 +121,12 @@ class NotificationService {
       final prefs = await SharedPreferences.getInstance();
       final alreadySent = prefs.getBool('has_sent_welcome_egypt_alert') ?? false;
       if (!alreadySent) {
-        // Trigger right after user accepts permission dialog
-        Future.delayed(const Duration(milliseconds: 1500), () async {
+        await prefs.setBool('has_sent_welcome_egypt_alert', true);
+        Future.delayed(const Duration(milliseconds: 1000), () async {
           await showTestNotification(
-            title: '🇪🇬 مباراة جديدة لـ منتخب مصر',
-            body: 'مصر vs جنوب افريقيا - الأحد 4 أكتوبر 2026 - 09:00 م',
+            title: '🇪🇬 تذاكر منتخب مصر متاحة الآن!',
+            body: 'مصر vs جنوب افريقيا - الأحد 4 أكتوبر 2026 - استاد القاهرة الدولي',
           );
-          await prefs.setBool('has_sent_welcome_egypt_alert', true);
         });
       }
     } catch (e) {
@@ -129,7 +134,8 @@ class NotificationService {
     }
   }
 
-  Future<void> _requestPermissions() async {
+  Future<bool> _requestPermissions(
+      AndroidFlutterLocalNotificationsPlugin? androidPlugin) async {
     // Firebase Messaging permission (iOS and Android 13+)
     final settings = await _fcm.requestPermission(
       alert: true,
@@ -141,12 +147,14 @@ class NotificationService {
         name: 'NotificationService');
 
     // Android 13+ local notifications permission request
-    final androidPlugin = _localNotifications
-        .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>();
+    bool androidGranted = true;
     if (androidPlugin != null) {
-      await androidPlugin.requestNotificationsPermission();
+      androidGranted =
+          await androidPlugin.requestNotificationsPermission() ?? false;
     }
+
+    return settings.authorizationStatus == AuthorizationStatus.authorized ||
+        androidGranted;
   }
 
   Future<void> _showForegroundNotification(RemoteMessage message) async {

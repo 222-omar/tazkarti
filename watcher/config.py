@@ -66,7 +66,7 @@ class Settings:
         default_factory=lambda: os.getenv("MOCK", "0").lower() in ("1", "true", "yes")
     )
     seed_silently: bool = field(
-        default_factory=lambda: os.getenv("SEED_SILENTLY", "true").lower() in ("1", "true", "yes")
+        default_factory=lambda: os.getenv("SEED_SILENTLY", "false").lower() in ("1", "true", "yes")
     )
 
     # Polling & Reliability

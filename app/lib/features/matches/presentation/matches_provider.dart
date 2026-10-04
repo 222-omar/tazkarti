@@ -6,12 +6,21 @@ final matchRepositoryProvider = Provider<MatchRepository>((ref) {
   return MatchRepository();
 });
 
-final matchesStreamProvider = StreamProvider<List<MatchModel>>((ref) {
+final matchesStreamProvider = StreamProvider<List<MatchModel>>((ref) async* {
   final repo = ref.watch(matchRepositoryProvider);
-  return repo.watchMatches().handleError((error) {
-    // If Firebase is not yet linked or offline, fall back to mock data
-    return MatchRepository.fallbackMockMatches;
-  });
+  try {
+    await for (final matches in repo.watchMatches()) {
+      if (matches.isEmpty) {
+        // Fall back to sample live matches if Firestore collection has no items yet
+        yield MatchRepository.fallbackMockMatches;
+      } else {
+        yield matches;
+      }
+    }
+  } catch (error) {
+    // If Firebase connection fails or is offline, show fallback matches
+    yield MatchRepository.fallbackMockMatches;
+  }
 });
 
 /// Filter state: 'all' (الكل), 'ahly' (الأهلي), 'egypt' (منتخب مصر)

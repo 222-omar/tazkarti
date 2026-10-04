@@ -8,15 +8,18 @@ class MatchRepository {
       : _firestore = firestore ?? FirebaseFirestore.instance;
 
   Stream<List<MatchModel>> watchMatches() {
-    return _firestore
-        .collection('matches')
-        .where('isDeleted', isEqualTo: false)
-        .where('showInPortal', isEqualTo: true)
-        .snapshots()
-        .map((snapshot) {
-      final matches = snapshot.docs.map((doc) {
-        return MatchModel.fromFirestore(doc.data());
-      }).toList();
+    return _firestore.collection('matches').snapshots().map((snapshot) {
+      final matches = snapshot.docs
+          .map((doc) {
+            try {
+              return MatchModel.fromFirestore(doc.data());
+            } catch (_) {
+              return null;
+            }
+          })
+          .whereType<MatchModel>()
+          .where((m) => !m.isDeleted && m.showInPortal)
+          .toList();
 
       // Sort by kickoff ascending (upcoming first)
       matches.sort((a, b) => a.kickoff.compareTo(b.kickoff));

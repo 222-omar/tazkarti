@@ -57,49 +57,53 @@ class MatchModel {
       return DateTime.now();
     }
 
+    int? toInt(dynamic val) {
+      if (val == null) return null;
+      if (val is int) return val;
+      if (val is num) return val.toInt();
+      return int.tryParse(val.toString());
+    }
+
     int parseStatus(Map<String, dynamic> d) {
-      if (d['lastMatchStatusRaw'] is int) return d['lastMatchStatusRaw'] as int;
-      if (d['matchStatus'] is int) return d['matchStatus'] as int;
-      if (d['matchStatusRaw'] is int) return d['matchStatusRaw'] as int;
-      final str = '${d['lastMatchStatusRaw'] ?? d['matchStatus'] ?? d['matchStatusRaw']}';
-      return int.tryParse(str) ?? 0;
+      final s = toInt(d['lastMatchStatusRaw']) ??
+          toInt(d['matchStatus']) ??
+          toInt(d['matchStatusRaw']);
+      return s ?? 0;
     }
 
     final keys = (data['teamKeys'] as List<dynamic>?)
-            ?.map((e) => e.toString())
+            ?.map((e) => e.toString().toLowerCase().trim())
             .toList() ??
         [];
 
     return MatchModel(
-      matchId: (data['matchId'] is int)
-          ? data['matchId'] as int
-          : int.tryParse('${data['matchId']}') ?? 0,
-      team1Id: (data['team1Id'] ?? data['teamId1']) as int?,
-      team2Id: (data['team2Id'] ?? data['teamId2']) as int?,
-      team1Ar: (data['team1Ar'] ?? data['teamNameAr1']) as String? ?? '',
-      team1En: (data['team1En'] ?? data['teamName1']) as String? ?? '',
-      team2Ar: (data['team2Ar'] ?? data['teamNameAr2']) as String? ?? '',
-      team2En: (data['team2En'] ?? data['teamName2']) as String? ?? '',
+      matchId: toInt(data['matchId']) ?? 0,
+      team1Id: toInt(data['team1Id'] ?? data['teamId1']),
+      team2Id: toInt(data['team2Id'] ?? data['teamId2']),
+      team1Ar: (data['team1Ar'] ?? data['teamNameAr1'] ?? '').toString(),
+      team1En: (data['team1En'] ?? data['teamName1'] ?? '').toString(),
+      team2Ar: (data['team2Ar'] ?? data['teamNameAr2'] ?? '').toString(),
+      team2En: (data['team2En'] ?? data['teamName2'] ?? '').toString(),
       kickoff: parseKickoff(data['kickoff'] ?? data['kickOffTime']),
       tournamentAr: (data['tournamentAr'] ??
               (data['tournament'] is Map ? data['tournament']['nameAr'] : ''))
-          as String? ??
+          ?.toString() ??
           '',
       tournamentEn: (data['tournamentEn'] ??
               (data['tournament'] is Map ? data['tournament']['nameEn'] : ''))
-          as String? ??
+          ?.toString() ??
           '',
-      stadiumAr: (data['stadiumAr'] ?? data['stadiumNameAr']) as String? ?? '',
-      stadiumEn: (data['stadiumEn'] ?? data['stadiumName']) as String? ?? '',
+      stadiumAr: (data['stadiumAr'] ?? data['stadiumNameAr'] ?? '').toString(),
+      stadiumEn: (data['stadiumEn'] ?? data['stadiumName'] ?? '').toString(),
       matchStatusRaw: parseStatus(data),
       teamKeys: keys,
-      showInPortal: data['showInPortal'] as bool? ?? true,
-      isDeleted: data['isDeleted'] as bool? ?? false,
-      url: data['url'] as String? ?? 'https://tazkarti.com/',
-      team1Logo: data['team1Logo'] as String?,
-      team2Logo: data['team2Logo'] as String?,
-      maxTicketsPerUser: data['maxTicketsPerUser'] as int?,
-      gatesOpenTime: data['gatesOpenTime'] as String?,
+      showInPortal: data['showInPortal'] != false,
+      isDeleted: data['isDeleted'] == true,
+      url: (data['url'] ?? 'https://tazkarti.com/').toString(),
+      team1Logo: data['team1Logo']?.toString(),
+      team2Logo: data['team2Logo']?.toString(),
+      maxTicketsPerUser: toInt(data['maxTicketsPerUser']),
+      gatesOpenTime: data['gatesOpenTime']?.toString(),
     );
   }
 
